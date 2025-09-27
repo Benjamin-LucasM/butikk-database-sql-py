@@ -3,6 +3,15 @@ import random
 from datetime import datetime
 import os
 
+filename = 'penger.txt'
+if os.path.exists(filename):
+    with open(filename, 'r') as file:
+        penger = int(file.read())
+else:
+    penger = 10000
+    with open(filename, 'w') as file:
+        file.write(str(penger))
+
 databasekobling = sqlite3.connect("butikk.db")
 c = databasekobling.cursor() 
 
@@ -30,10 +39,23 @@ def legg_til_vare():
                 rad = resultat[0]
                 iid = rad[0]
                 antall = rad[1]
-                aantall_tillegg = int(input("hvor mange skal du legge til? - "))
-                nytt_aantall = antall + aantall_tillegg
+                pris = bok_priser[bok]
+                antall_tillegg = int(input("hvor mange skal du legge til? - "))
+                totalt = antall_tillegg * pris
+
+                # Sjekk om du har nok penger før du bekrefter kjøpet
+                with open("penger.txt", "r") as f:
+                    tidligere_penger = int(f.read())
+                if tidligere_penger < totalt:
+                    print(f"Du har ikke råd til å kjøpe {antall_tillegg} av {bok}. Du har {tidligere_penger}kr, men det koster {totalt}kr.")
+                    continue  # Gå tilbake og prøv igjen eller avbryt
+
+                nytt_aantall = antall + antall_tillegg
                 c.execute("UPDATE inventar SET antall = ? WHERE id = ?", (nytt_aantall, iid))
                 print(f"antall {bok} er nå {nytt_aantall}\n")
+                ny_penger = tidligere_penger - totalt
+                with open("penger.txt", "w") as f:
+                    f.write(f"{ny_penger}")
                 break
             else:
                 pris = random.randint(250, 450)
@@ -41,12 +63,23 @@ def legg_til_vare():
                 print(f"En {bok} koster {pris}")
                 antall = int(input("Skriv antall ønsket kopier:  "))
                 totalt = antall * pris
+
+                # Sjekk om du har råd før du bekrefter
+                with open("penger.txt", "r") as f:
+                    tidligere_penger = int(f.read())
+                if tidligere_penger < totalt:
+                    print(f"Du har ikke råd til å kjøpe {antall} av {bok}. Du har {tidligere_penger}kr, men det koster {totalt}kr.")
+                    login()
+
                 print(f"totalt koster det {totalt}")
                 konfirmasjon = input("bekreft bestilling (ja/nei) - ")
                 if konfirmasjon == "ja":
                     print(f"bestilling bekreftet for {antall} utgaver av {bok} som kostet totalt {totalt}\n")
                     c.execute("INSERT INTO inventar (navn, pris, antall) VALUES (?,?,?)",(bok,pris,antall))
                     databasekobling.commit()
+                    ny_penger = tidligere_penger - totalt
+                    with open("penger.txt", "w") as f:
+                        f.write(f"{ny_penger}")
                     break
                 else:
                     break
@@ -56,6 +89,9 @@ def vis_lager():
     kolonne_antall = c.fetchall()
     for vare in kolonne_antall:
         print(f"ID: {vare[0]}, Navn: {vare[1]}, Pris: {vare[2]}, Antall: {vare[3]}")
+    with open("penger.txt", "r") as f:
+        print("\n")
+        print(f.read())
 
 def salg(): #funksjon for slag
     valgte_varer = [] #lager en liste for varene til å lagres for senere
@@ -99,6 +135,12 @@ def salg(): #funksjon for slag
     c.execute("UPDATE inventar SET antall = ? WHERE id = ?", (nytt_antall, vare_id))
     databasekobling.commit()
     print(f"\nREGNING \n{antall_kopier} stk av {valgt_vare[1]} for {total_pris}kr\n\n")
+
+    with open("penger.txt", "r") as f:
+        tidligere_penger = int(f.read())
+    ny_penger = tidligere_penger + total_pris
+    with open("penger.txt", "w") as f:
+        f.write(f"{ny_penger}")
 
 def login():
     passord = "bok123"
