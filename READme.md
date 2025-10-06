@@ -1,1 +1,2 @@
 for ansatte skriv LOGIN med stor skrift på første melding for de ansatte sin meny
+passord er bok123
