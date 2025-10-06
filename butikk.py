@@ -1,16 +1,6 @@
 import sqlite3
 import random
 from datetime import datetime
-import os
-
-filename = 'penger.txt'
-if os.path.exists(filename):
-    with open(filename, 'r') as file:
-        penger = int(file.read())
-else:
-    penger = 10000
-    with open(filename, 'w') as file:
-        file.write(str(penger))
 
 databasekobling = sqlite3.connect("butikk.db")
 c = databasekobling.cursor() 
